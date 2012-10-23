@@ -11,22 +11,13 @@
         
         public function __construct() {
             add_action('init', array(&$this, 'register_custom_post_types'));
-            add_action('admin_menu', array(&$this, 'admin_menu'));
+            add_action('admin_menu', array(&$this, 'hide_add_new_sent_mail'));
             add_action('admin_menu', array(&$this, 'add_meta_box'));
             add_filter('manage_sent_mail_posts_columns', array(&$this, 'column_heads'));
             add_action('manage_sent_mail_posts_custom_column', array(&$this, 'column_contents'), 10, 2);
         }
         
-        public function admin_menu() {
-            add_management_page('Mail Trail', 'Mail Trail', 'manage_options', 'mail-trail', array(&$this, 'render_admin_action'));
-        }
-        
-        public function render_admin_action() {
-            $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'upload';
-            require_once(plugin_dir_path(__FILE__).'mail-trail-common.php');
-            require_once(plugin_dir_path(__FILE__)."mail-trail-{$action}.php");
-        }
-        
+        //register sent_mail post type
         function register_custom_post_types() {
             register_post_type(
                 "sent_mail",
@@ -46,23 +37,33 @@
             );
         }
         
+        //hide the Add New menu item
+        function hide_add_new_sent_mail()
+        {
+            global $submenu;
+            unset($submenu['edit.php?post_type=sent_mail'][10]);
+        }
+        
+        //add the To column and rename the Title column to Subject
         function column_heads($defaults) {  
             $defaults['sent_mail_to'] = 'To';
             $defaults['title'] = 'Subject';
             return $defaults;  
         }  
         
-        function column_contents($column_name, $post_id) {  
-            if ($column_name == 'sent_mail_to') {  
+        //populate the To column
+        function column_contents($column_name, $post_id) {
+            if ($column_name == 'sent_mail_to') {
                 echo get_post_meta($post_id, '_to', true);
-            }  
-        }  
-
+            }
+        }
         
+        //add the info meta box to the sent_mail post type
         function add_meta_box() {
             add_meta_box('sent_mail_details', 'Sent Mail Details', array(&$this, 'show_meta_box'), 'sent_mail', 'normal', 'high');
         }
         
+        //show the info meta box
         function show_meta_box() {
             require_once(plugin_dir_path(__FILE__).'mail-trail-meta-box.php');
         }
