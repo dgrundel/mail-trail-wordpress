@@ -27,15 +27,16 @@
                         "name" => __( "Sent Mail" ),
                         "singular_name" => __( "Sent Mail" )
                     ),
-                    "public" => true,
-                    "has_archive" => true,
+                    "public" => false,
+                    "has_archive" => false,
                     "show_ui" => true,
                     "capability_type" => "post",
                     "hierarchical" => false,
-                    "rewrite" => true,
-                    'supports' => array('custom-fields'),
+                    "rewrite" => false
                 )
             );
+            remove_post_type_support('sent_mail', 'editor');
+            remove_post_type_support('sent_mail', 'title');
         }
         
         //hide the Add New menu item
@@ -47,8 +48,14 @@
         //hide the Add New button in the header
         function hide_add_new_header_button() {
             global $pagenow;
-            if(is_admin() && $pagenow == 'edit.php' && $_GET['post_type'] == 'sent_mail')
-                echo "<style type=\"text/css\">.add-new-h2{display: none;}</style>";
+            $post_id = intval($_GET['post']);
+            $post_type = $post_id > 0 ? get_post_type($post_id) : $_GET['post_type'];
+            
+            if(is_admin() && $post_type == 'sent_mail' && ( $pagenow == 'edit.php' || $pagenow == 'post.php' )): ?>
+                <style>
+                    .add-new-h2 { display: none; }
+                </style>
+            <?php endif;
         }
         
         //add the To column and rename the Title column to Subject

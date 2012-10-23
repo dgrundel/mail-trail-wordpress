@@ -296,6 +296,7 @@
         $new_post_meta['_headers'] = implode(',', $headers);
         $new_post_meta['_attachments'] = implode(',', $attachments);
         $new_post_meta['_created'] = time();
+        $new_post_meta['_content_type'] = $content_type;
         
         $new_post_id = wp_insert_post($new_post, true);
         
