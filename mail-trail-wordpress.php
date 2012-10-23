@@ -11,7 +11,8 @@
         
         public function __construct() {
             add_action('init', array(&$this, 'register_custom_post_types'));
-            add_action('admin_menu', array(&$this, 'hide_add_new_sent_mail'));
+            add_action('admin_menu', array(&$this, 'hide_add_new_menu_item'));
+            add_action('admin_head', array(&$this, 'hide_add_new_header_button'));
             add_action('admin_menu', array(&$this, 'add_meta_box'));
             add_filter('manage_sent_mail_posts_columns', array(&$this, 'column_heads'));
             add_action('manage_sent_mail_posts_custom_column', array(&$this, 'column_contents'), 10, 2);
@@ -38,10 +39,16 @@
         }
         
         //hide the Add New menu item
-        function hide_add_new_sent_mail()
-        {
+        function hide_add_new_menu_item() {
             global $submenu;
             unset($submenu['edit.php?post_type=sent_mail'][10]);
+        }
+        
+        //hide the Add New button in the header
+        function hide_add_new_header_button() {
+            global $pagenow;
+            if(is_admin() && $pagenow == 'edit.php' && $_GET['post_type'] == 'sent_mail')
+                echo "<style type=\"text/css\">.add-new-h2{display: none;}</style>";
         }
         
         //add the To column and rename the Title column to Subject
