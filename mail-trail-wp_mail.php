@@ -288,7 +288,7 @@
             $send_status = false;
         }
         
-        $new_post['post_status'] = $send_status ? 'publish' : 'draft';
+        $new_post['post_status'] = $send_status ? 'private' : 'draft';
         
         $new_post_meta['_to'] = implode(',', $to);
         if(!empty($cc)) $new_post_meta['_cc'] = implode(',', $cc);
