@@ -10,5 +10,8 @@ Creates a custom post type called *Sent Mail* and creates a post of this type ev
 - BCC all messages to site Admin
 - Send all admin messages to multiple addresses
 
-SES functionality will probably make use of Dan Myers' Amazon SimpleEmailService PHP class
+SES functionality will probably make use of Dan Myers' Amazon SimpleEmailService PHP class.
 http://sourceforge.net/projects/php-aws-ses/
+
+Mail icon used in WP Admin is from the Silk icon set by Mark James.
+http://www.famfamfam.com/lab/icons/silk/
