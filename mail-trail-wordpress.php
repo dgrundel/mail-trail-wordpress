@@ -32,7 +32,8 @@
                     "show_ui" => true,
                     "capability_type" => "post",
                     "hierarchical" => false,
-                    "rewrite" => false
+                    "rewrite" => false,
+                    "menu_icon" => plugin_dir_url(__FILE__).'img/email.png'
                 )
             );
             remove_post_type_support('sent_mail', 'editor');
