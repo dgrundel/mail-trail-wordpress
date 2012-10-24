@@ -10,6 +10,8 @@ Creates a custom post type called *Sent Mail* and creates a post of this type ev
 - BCC all messages to site Admin
 - Send all admin messages to multiple addresses
 
+**Credits**
+
 SES functionality will probably make use of Dan Myers' Amazon SimpleEmailService PHP class.
 http://sourceforge.net/projects/php-aws-ses/
 
