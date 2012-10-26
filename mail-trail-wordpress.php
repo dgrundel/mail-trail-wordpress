@@ -11,7 +11,9 @@
         
         public function __construct() {
             add_action('init', array(&$this, 'register_custom_post_types'));
+            add_filter('admin_init', array(&$this , 'register_settings_fields'));
             add_action('admin_menu', array(&$this, 'hide_add_new_menu_item'));
+            add_action('admin_menu', array(&$this, 'admin_menu'));
             add_action('admin_head', array(&$this, 'hide_add_new_header_button'));
             add_action('admin_menu', array(&$this, 'add_meta_box'));
             add_filter('manage_sent_mail_posts_columns', array(&$this, 'column_heads'));
@@ -38,6 +40,48 @@
             );
             remove_post_type_support('sent_mail', 'editor');
             remove_post_type_support('sent_mail', 'title');
+        }
+        
+        //add mail options page to admin menu
+        function admin_menu() {
+            add_submenu_page('edit.php?post_type=sent_mail', 'Mail Options', 'Mail Options', 'manage_options', 'mail_options', array(&$this, 'mail_options_html'));
+        }
+        
+        //generate mail options page html
+        function mail_options_html() { ?>  
+            <div class="wrap">  
+                <div id="icon-tools" class="icon32"></div>  
+                <h2>Mail Options</h2>  
+                <?php settings_errors(); ?>  
+                <form method="post" action="options.php">  
+                    <?php  
+                        settings_fields( 'mail_options' );  
+                        do_settings_sections( 'mail_options' );  
+                        submit_button();  
+                    ?>  
+                </form>  
+            </div>
+        <?php }
+        
+        //register settings with WP
+        function register_settings_fields() {
+            add_settings_section('mail_options_tracking', 'Mail Tracking', array(&$this, 'tracking_section_description_html'), 'mail_options');
+            
+            register_setting('mail_options', 'mail_trail__enable_mail_save', 'intval');
+            
+            add_settings_field('mail_trail__enable_mail_save', '<label for="mail_trail__enable_mail_save">Save All Outgoing Mail</label>' , array(&$this, 'enable_mail_save_html') , 'mail_options', 'mail_options_tracking');
+        }
+        
+        //echo out the mail tracking section description
+        function tracking_section_description_html() {
+            ?><p>Save all outgoing mail in the WordPress database. Viewable only by Administrators.</p><?php
+        }
+        
+        //echo out the enable_mail_save field html
+        function enable_mail_save_html() {
+            $field_value = intval(get_option('mail_trail__enable_mail_save', ''));
+            ?><input type="hidden" name="mail_trail__enable_mail_save" value="0">
+            <input type="checkbox" id="mail_trail__enable_mail_save" name="mail_trail__enable_mail_save" value="1"<?php if($field_value) echo ' checked'; ?>><?php
         }
         
         //hide the Add New menu item

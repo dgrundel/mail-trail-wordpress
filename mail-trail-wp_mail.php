@@ -288,24 +288,27 @@
             $send_status = false;
         }
         
-        $new_post['post_status'] = $send_status ? 'private' : 'draft';
-        
-        $new_post_meta['_to'] = implode(',', $to);
-        if(!empty($cc)) $new_post_meta['_cc'] = implode(',', $cc);
-        if(!empty($bcc)) $new_post_meta['_bcc'] = implode(',', $bcc);
-        $new_post_meta['_headers'] = implode(',', $headers);
-        $new_post_meta['_attachments'] = implode(',', $attachments);
-        $new_post_meta['_created'] = time();
-        $new_post_meta['_content_type'] = $content_type;
-        
-        $new_post_id = wp_insert_post($new_post, true);
-        
-        if(!is_wp_error($new_post_id) && $new_post_id > 0) {
+        //save in database if option enabled
+        if(intval(get_option('mail_trail__enable_mail_save', ''))) {
+            $new_post['post_status'] = $send_status ? 'private' : 'draft';
             
-            //set post_meta on inserted post
-            foreach($new_post_meta as $meta_key => $meta_value) {
-                add_post_meta($new_post_id, $meta_key, $meta_value, true) or
-                    update_post_meta($new_post_id, $meta_key, $meta_value);
+            $new_post_meta['_to'] = implode(',', $to);
+            if(!empty($cc)) $new_post_meta['_cc'] = implode(',', $cc);
+            if(!empty($bcc)) $new_post_meta['_bcc'] = implode(',', $bcc);
+            $new_post_meta['_headers'] = implode(',', $headers);
+            $new_post_meta['_attachments'] = implode(',', $attachments);
+            $new_post_meta['_created'] = time();
+            $new_post_meta['_content_type'] = $content_type;
+            
+            $new_post_id = wp_insert_post($new_post, true);
+            
+            if(!is_wp_error($new_post_id) && $new_post_id > 0) {
+                
+                //set post_meta on inserted post
+                foreach($new_post_meta as $meta_key => $meta_value) {
+                    add_post_meta($new_post_id, $meta_key, $meta_value, true) or
+                        update_post_meta($new_post_id, $meta_key, $meta_value);
+                }
             }
         }
         
