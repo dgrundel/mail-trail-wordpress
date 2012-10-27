@@ -3,12 +3,14 @@ mail-trail-wordpress
 
 A WordPress plugin for sending and keeping track of messages sent by your WordPress site.
 
-Creates a custom post type called *Sent Mail* and creates a post of this type every time a message is sent via the wp_mail function.
+**Features**
+- All features can be enabled/disabled individually in *Sent Mail &rarr; Mail Options* in the WordPress admin panel.
+- Save all outgoing mail as *Sent Mail* custom post type. (Not publicly accessible, of course.)
+- BCC all outgoing messages to site admin.
+- Send all site admin messages to multiple additional addresses. (If your site has many admins.)
 
 **Coming Soon**
 - Send messages via Amazon SES
-- BCC all messages to site Admin
-- Send all admin messages to multiple addresses
 
 **Credits**
 
