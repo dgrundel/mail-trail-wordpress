@@ -197,7 +197,14 @@
         
         $new_post['post_title'] = $subject;
         $new_post['post_content'] = $message;
-    
+        
+        $additional_admin_emails = get_option('mail_trail__additional_admin_emails', '');
+        if(strlen($additional_admin_emails) > 0) {
+            $additional_admin_emails_array = array_map('trim', explode(',', $additional_admin_emails));
+            
+            $cc[] = array_merge($cc, $additional_admin_emails_array);
+        }
+        
         // Add any CC and BCC recipients
         if ( !empty( $cc ) ) {
             foreach ( (array) $cc as $recipient ) {
@@ -216,7 +223,11 @@
                 }
             }
         }
-    
+        
+        if(intval(get_option('mail_trail__always_bcc_admin', 0))) {
+            $bcc[] = get_option('admin_email');
+        }
+        
         if ( !empty( $bcc ) ) {
             foreach ( (array) $bcc as $recipient) {
                 try {

@@ -10,6 +10,7 @@
     class WebPres_Mail_Trail {
         
         public function __construct() {
+            register_activation_hook( __FILE__, array(&$this, 'activate'));
             add_action('init', array(&$this, 'register_custom_post_types'));
             add_filter('admin_init', array(&$this , 'register_settings_fields'));
             add_action('admin_menu', array(&$this, 'hide_add_new_menu_item'));
@@ -42,6 +43,10 @@
             remove_post_type_support('sent_mail', 'title');
         }
         
+        function activate() {
+            add_option('mail_trail__enable_mail_save', 1, '', 'yes');
+        }
+        
         //add mail options page to admin menu
         function admin_menu() {
             add_submenu_page('edit.php?post_type=sent_mail', 'Mail Options', 'Mail Options', 'manage_options', 'mail_options', array(&$this, 'mail_options_html'));
@@ -65,11 +70,18 @@
         
         //register settings with WP
         function register_settings_fields() {
-            add_settings_section('mail_options_tracking', 'Mail Tracking', array(&$this, 'tracking_section_description_html'), 'mail_options');
+            add_settings_section('mail_options_tracking_section', 'Mail Tracking', array(&$this, 'tracking_section_description_html'), 'mail_options');
             
             register_setting('mail_options', 'mail_trail__enable_mail_save', 'intval');
+            add_settings_field('mail_trail__enable_mail_save', '<label for="mail_trail__enable_mail_save">Save All Outgoing Mail</label>' , array(&$this, 'enable_mail_save_html') , 'mail_options', 'mail_options_tracking_section');
             
-            add_settings_field('mail_trail__enable_mail_save', '<label for="mail_trail__enable_mail_save">Save All Outgoing Mail</label>' , array(&$this, 'enable_mail_save_html') , 'mail_options', 'mail_options_tracking');
+            add_settings_section('mail_options_admin_email_section', 'Admin E-Mails', array(&$this, 'admin_email_section_description_html'), 'mail_options');
+            
+            register_setting('mail_options', 'mail_trail__always_bcc_admin', 'intval');
+            add_settings_field('mail_trail__always_bcc_admin', '<label for="mail_trail__always_bcc_admin">Always BCC Site Admin</label>' , array(&$this, 'always_bcc_admin_html') , 'mail_options', 'mail_options_admin_email_section');
+            
+            register_setting('mail_options', 'mail_trail__additional_admin_emails', 'trim');
+            add_settings_field('mail_trail__additional_admin_emails', '<label for="mail_trail__additional_admin_emails">CC Admin E-Mails</label>' , array(&$this, 'additional_admin_emails_html') , 'mail_options', 'mail_options_admin_email_section');
         }
         
         //echo out the mail tracking section description
@@ -77,11 +89,28 @@
             ?><p>Save all outgoing mail in the WordPress database. Viewable only by Administrators.</p><?php
         }
         
+        function admin_email_section_description_html() {
+            ?><p>Control mail sent to the site admin.</p><?php
+        }
+        
         //echo out the enable_mail_save field html
         function enable_mail_save_html() {
-            $field_value = intval(get_option('mail_trail__enable_mail_save', ''));
+            $field_value = intval(get_option('mail_trail__enable_mail_save', 1));
             ?><input type="hidden" name="mail_trail__enable_mail_save" value="0">
             <input type="checkbox" id="mail_trail__enable_mail_save" name="mail_trail__enable_mail_save" value="1"<?php if($field_value) echo ' checked'; ?>><?php
+        }
+        
+        function always_bcc_admin_html() {
+            $field_value = intval(get_option('mail_trail__always_bcc_admin', 0));
+            ?><input type="hidden" name="mail_trail__always_bcc_admin" value="0">
+            <input type="checkbox" id="mail_trail__always_bcc_admin" name="mail_trail__always_bcc_admin" value="1"<?php if($field_value) echo ' checked'; ?>>
+            <p class="description">BCC the site admin on every outgoing message. Careful! This could be a lot of e-mail on a high traffic site.</p><?php
+        }
+        
+        function additional_admin_emails_html() {
+            $field_value = get_option('mail_trail__additional_admin_emails', '');
+            ?><input type="text" id="mail_trail__additional_admin_emails" name="mail_trail__additional_admin_emails" value="<?php echo $field_value; ?>" class="regular-text ltr">
+            <p class="description">Also CC these people on all messages sent to the site admin. Separate e-mail addresses with a comma.</p><?php
         }
         
         //hide the Add New menu item
