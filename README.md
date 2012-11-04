@@ -11,10 +11,8 @@ A WordPress plugin for sending and keeping track of messages sent by your WordPr
 - Save all outgoing mail as *Sent Mail* custom post type. (Not publicly accessible, of course.)
 - BCC all outgoing messages to site admin.
 - Send all site admin messages to multiple additional addresses. (If your site has many admins.)
-
-**To Do**
-
-- Option to delete old messages after X days.
+- Option to purge old messages after a user-defined number of days.
+- Purged messages can go to the Trash or be permanently deleted.
 
 **Credits**
 
