@@ -11,6 +11,7 @@
         
         public function __construct() {
             register_activation_hook( __FILE__, array(&$this, 'activate'));
+            register_deactivation_hook( __FILE__, array(&$this, 'deactivate'));
             add_action('init', array(&$this, 'register_custom_post_types'));
             add_filter('admin_init', array(&$this , 'register_settings_fields'));
             add_action('admin_menu', array(&$this, 'hide_add_new_menu_item'));
@@ -19,6 +20,7 @@
             add_action('admin_menu', array(&$this, 'add_meta_box'));
             add_filter('manage_sent_mail_posts_columns', array(&$this, 'column_heads'));
             add_action('manage_sent_mail_posts_custom_column', array(&$this, 'column_contents'), 10, 2);
+            add_action('mail_trail__purge_old_messages_action', array(&$this, 'purge_old_messages'));
         }
         
         //register sent_mail post type
@@ -45,6 +47,11 @@
         
         function activate() {
             add_option('mail_trail__enable_mail_save', 1, '', 'yes');
+            wp_schedule_event(time(), 'hourly', 'mail_trail__purge_old_messages_action');
+        }
+        
+        function deactivate() {
+            wp_clear_scheduled_hook('mail_trail__purge_old_messages_action');
         }
         
         //add mail options page to admin menu
@@ -84,6 +91,12 @@
             
             register_setting('mail_options', 'mail_trail__enable_mail_save', 'intval');
             add_settings_field('mail_trail__enable_mail_save', '<label for="mail_trail__enable_mail_save">Save All Outgoing Mail</label>' , array(&$this, 'enable_mail_save_html') , 'mail_options', 'mail_options_tracking_section');
+            
+            register_setting('mail_options', 'mail_trail__purge_old_mail', 'intval');
+            add_settings_field('mail_trail__purge_old_mail', '<label for="mail_trail__purge_old_mail">Purge Old Mail After Days</label>' , array(&$this, 'purge_old_mail_html') , 'mail_options', 'mail_options_tracking_section');
+            
+            register_setting('mail_options', 'mail_trail__permanently_delete_old_mail', 'intval');
+            add_settings_field('mail_trail__permanently_delete_old_mail', '<label for="mail_trail__permanently_delete_old_mail">Permanently Delete Purged Mail</label>' , array(&$this, 'permanently_delete_old_mail_html') , 'mail_options', 'mail_options_tracking_section');
             
             //Admin E-Mails
             add_settings_section('mail_options_admin_email_section', 'Admin E-Mails', array(&$this, 'admin_email_section_description_html'), 'mail_options');
@@ -139,6 +152,19 @@
             $field_value = intval(get_option('mail_trail__enable_mail_save', 1));
             ?><input type="hidden" name="mail_trail__enable_mail_save" value="0">
             <input type="checkbox" id="mail_trail__enable_mail_save" name="mail_trail__enable_mail_save" value="1"<?php if($field_value) echo ' checked'; ?>><?php
+        }
+        
+        function purge_old_mail_html() {
+            $field_value = intval(get_option('mail_trail__purge_old_mail', 0));
+            ?><input type="number" id="mail_trail__purge_old_mail" name="mail_trail__purge_old_mail" step="1" min="1" value="<?php echo $field_value; ?>" class="small-text">
+            <p class="description">Automatically remove saved messages after a certain number of days. Enter 0 (zero) to keep mail indefinitely.</p><?php
+        }
+        
+        function permanently_delete_old_mail_html() {
+            $field_value = intval(get_option('mail_trail__permanently_delete_old_mail', 0));
+            ?><input type="hidden" name="mail_trail__permanently_delete_old_mail" value="0">
+            <input type="checkbox" id="mail_trail__permanently_delete_old_mail" name="mail_trail__permanently_delete_old_mail" value="1"<?php if($field_value) echo ' checked'; ?>>
+            <p class="description">If unchecked, purged items are moved to the trash. If the trash is disabled on your blog, items will be permanently deleted regardless of this setting.</p><?php
         }
         
         function always_bcc_admin_html() {
@@ -211,6 +237,38 @@
         //show the info meta box
         function show_meta_box() {
             require_once(plugin_dir_path(__FILE__).'mail-trail-meta-box.php');
+        }
+        
+        //purge old messages
+        function purge_old_messages() {
+            $interval = intval(get_option('mail_trail__purge_old_mail', 0));
+            if($interval <= 0) return; //don't do anything if the option is set to zero.
+            $interval_date = time() - (60 * 60 * 24 * $interval);
+            
+            $permanently_delete = intval(get_option('mail_trail__permanently_delete_old_mail', 0));
+            
+            $existing_post_query = array(
+                'numberposts' => -1,
+                'meta_key' => '_created',
+                'meta_query' => array(
+                    array(
+                        'key'=>'_created',
+                        'value'=> $interval_date,
+                        'compare' => '<=',
+                        'type' => 'NUMERIC'
+                    )
+                ),
+                'post_type' => 'product');
+            $existing_posts = get_posts($existing_post_query);
+            if(is_array($existing_posts) && sizeof($existing_posts) > 0) {
+                foreach($existing_posts as $existing_post) {
+                    if($permanently_delete) {
+                        wp_delete_post($existing_post->ID, true);
+                    } else {
+                        wp_trash_post($existing_post->ID);
+                    }
+                }
+            }
         }
     }
     
