@@ -12,6 +12,10 @@ A WordPress plugin for sending and keeping track of messages sent by your WordPr
 - BCC all outgoing messages to site admin.
 - Send all site admin messages to multiple additional addresses. (If your site has many admins.)
 
+**To Do**
+
+- Option to delete old messages after X days.
+
 **Credits**
 
 SES functionality makes use of Dan Myers' Amazon SimpleEmailService PHP class.

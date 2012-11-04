@@ -208,7 +208,7 @@
         }
         
         public function get_headers() {
-            return is_array($this->headers) ? $this->headers() : array();
+            return is_array($this->headers) ? $this->headers : array();
         }
         
         public function add_attachment($attachment) {
