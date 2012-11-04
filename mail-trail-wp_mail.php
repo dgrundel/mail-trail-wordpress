@@ -38,26 +38,14 @@
      */
     function wp_mail( $to, $subject, $message, $headers = '', $attachments = array() ) {
         
-        $new_post = array();
-        $new_post['post_type'] = 'sent_mail';
-        
-        $new_post_meta = array();
-        
         // Compact the input, apply the filters, and extract them back out
         extract( apply_filters( 'wp_mail', compact( 'to', 'subject', 'message', 'headers', 'attachments' ) ) );
     
         if ( !is_array($attachments) )
             $attachments = explode( "\n", str_replace( "\r\n", "\n", $attachments ) );
-    
-        global $phpmailer;
-    
-        // (Re)create it, if it's gone missing
-        if ( !is_object( $phpmailer ) || !is_a( $phpmailer, 'PHPMailer' ) ) {
-            require_once ABSPATH . WPINC . '/class-phpmailer.php';
-            require_once ABSPATH . WPINC . '/class-smtp.php';
-            $phpmailer = new PHPMailer( true );
-        }
-    
+        
+        $mail_trail_message = new WebPres_Mail_Trail_Message();
+        
         // Headers
         if ( empty( $headers ) ) {
             $headers = array();
@@ -136,41 +124,12 @@
             }
         }
     
-        // Empty out the values that may be set
-        $phpmailer->ClearAddresses();
-        $phpmailer->ClearAllRecipients();
-        $phpmailer->ClearAttachments();
-        $phpmailer->ClearBCCs();
-        $phpmailer->ClearCCs();
-        $phpmailer->ClearCustomHeaders();
-        $phpmailer->ClearReplyTos();
+        if ( isset( $from_name ) )
+            $mail_trail_message->set_from(null, apply_filters('wp_mail_from_name', $from_name));
     
-        // From email and name
-        // If we don't have a name from the input headers
-        if ( !isset( $from_name ) )
-            $from_name = 'WordPress';
-    
-        /* If we don't have an email from the input headers default to wordpress@$sitename
-         * Some hosts will block outgoing mail from this address if it doesn't exist but
-         * there's no easy alternative. Defaulting to admin_email might appear to be another
-         * option but some hosts may refuse to relay mail from an unknown domain. See
-         * http://trac.wordpress.org/ticket/5007.
-         */
-    
-        if ( !isset( $from_email ) ) {
-            // Get the site domain and get rid of www.
-            $sitename = strtolower( $_SERVER['SERVER_NAME'] );
-            if ( substr( $sitename, 0, 4 ) == 'www.' ) {
-                $sitename = substr( $sitename, 4 );
-            }
-    
-            $from_email = 'wordpress@' . $sitename;
-        }
-    
-        // Plugin authors can override the potentially troublesome default
-        $phpmailer->From     = apply_filters( 'wp_mail_from'     , $from_email );
-        $phpmailer->FromName = apply_filters( 'wp_mail_from_name', $from_name  );
-    
+        if ( isset( $from_email ) )
+            $mail_trail_message->set_from(apply_filters('wp_mail_from_email', $from_email), null);
+        
         // Set destination addresses
         if ( !is_array( $to ) )
             $to = explode( ',', $to );
@@ -185,25 +144,15 @@
                         $recipient = $matches[2];
                     }
                 }
-                $phpmailer->AddAddress( $recipient, $recipient_name);
+                $mail_trail_message->add_to($recipient, $recipient_name);
             } catch ( phpmailerException $e ) {
                 continue;
             }
         }
     
         // Set mail's subject and body
-        $phpmailer->Subject = $subject;
-        $phpmailer->Body    = $message;
-        
-        $new_post['post_title'] = $subject;
-        $new_post['post_content'] = $message;
-        
-        $additional_admin_emails = get_option('mail_trail__additional_admin_emails', '');
-        if(strlen($additional_admin_emails) > 0) {
-            $additional_admin_emails_array = array_map('trim', explode(',', $additional_admin_emails));
-            
-            $cc[] = array_merge($cc, $additional_admin_emails_array);
-        }
+        $mail_trail_message->set_subject($subject);
+        $mail_trail_message->set_body($message, $message);
         
         // Add any CC and BCC recipients
         if ( !empty( $cc ) ) {
@@ -217,17 +166,13 @@
                             $recipient = $matches[2];
                         }
                     }
-                    $phpmailer->AddCc( $recipient, $recipient_name );
+                    $mail_trail_message->add_cc($recipient, $recipient_name);
                 } catch ( phpmailerException $e ) {
                     continue;
                 }
             }
         }
-        
-        if(intval(get_option('mail_trail__always_bcc_admin', 0))) {
-            $bcc[] = get_option('admin_email');
-        }
-        
+    
         if ( !empty( $bcc ) ) {
             foreach ( (array) $bcc as $recipient) {
                 try {
@@ -239,91 +184,46 @@
                             $recipient = $matches[2];
                         }
                     }
-                    $phpmailer->AddBcc( $recipient, $recipient_name );
+                    $mail_trail_message->add_bcc($recipient, $recipient_name);
                 } catch ( phpmailerException $e ) {
                     continue;
                 }
             }
         }
-    
-        // Set to use PHP's mail()
-        $phpmailer->IsMail();
     
         // Set Content-Type and charset
         // If we don't have a content-type from the input headers
         if ( !isset( $content_type ) )
             $content_type = 'text/plain';
-    
+        
         $content_type = apply_filters( 'wp_mail_content_type', $content_type );
-    
-        $phpmailer->ContentType = $content_type;
-    
-        // Set whether it's plaintext, depending on $content_type
-        if ( 'text/html' == $content_type )
-            $phpmailer->IsHTML( true );
-    
-        // If we don't have a charset from the input headers
-        if ( !isset( $charset ) )
-            $charset = get_bloginfo( 'charset' );
-    
+        $mail_trail_message->set_content_type($content_type);
+        
         // Set the content-type and charset
-        $phpmailer->CharSet = apply_filters( 'wp_mail_charset', $charset );
+        if ( isset( $charset ) )
+            $mail_trail_message->set_charset(apply_filters( 'wp_mail_charset', $charset ));
     
         // Set custom headers
         if ( !empty( $headers ) ) {
             foreach( (array) $headers as $name => $content ) {
-                $phpmailer->AddCustomHeader( sprintf( '%1$s: %2$s', $name, $content ) );
+                $mail_trail_message->add_header(sprintf( '%1$s: %2$s', $name, $content ));
             }
     
             if ( false !== stripos( $content_type, 'multipart' ) && ! empty($boundary) )
-                $phpmailer->AddCustomHeader( sprintf( "Content-Type: %s;\n\t boundary=\"%s\"", $content_type, $boundary ) );
+                $mail_trail_message->add_header(sprintf( "Content-Type: %s;\n\t boundary=\"%s\"", $content_type, $boundary ));
         }
     
         if ( !empty( $attachments ) ) {
             foreach ( $attachments as $attachment ) {
-                try {
-                    $phpmailer->AddAttachment($attachment);
-                } catch ( phpmailerException $e ) {
-                    continue;
-                }
+                $mail_trail_message->add_attachment($attachment);
             }
         }
     
-        do_action_ref_array( 'phpmailer_init', array( &$phpmailer ) );
-    
-        // Send!
-        try {
-            $phpmailer->Send();
-            $send_status = true;
-        } catch ( phpmailerException $e ) {
-            $send_status = false;
-        }
-        
-        //save in database if option enabled
-        if(intval(get_option('mail_trail__enable_mail_save', ''))) {
-            $new_post['post_status'] = $send_status ? 'private' : 'draft';
-            
-            $new_post_meta['_to'] = implode(',', $to);
-            if(!empty($cc)) $new_post_meta['_cc'] = implode(',', $cc);
-            if(!empty($bcc)) $new_post_meta['_bcc'] = implode(',', $bcc);
-            $new_post_meta['_headers'] = implode(',', $headers);
-            $new_post_meta['_attachments'] = implode(',', $attachments);
-            $new_post_meta['_created'] = time();
-            $new_post_meta['_content_type'] = $content_type;
-            
-            $new_post_id = wp_insert_post($new_post, true);
-            
-            if(!is_wp_error($new_post_id) && $new_post_id > 0) {
-                
-                //set post_meta on inserted post
-                foreach($new_post_meta as $meta_key => $meta_value) {
-                    add_post_meta($new_post_id, $meta_key, $meta_value, true) or
-                        update_post_meta($new_post_id, $meta_key, $meta_value);
-                }
-            }
-        }
-        
-        return $send_status;
+        $send_via_ses = intval(get_option('mail_trail__enable_ses', 0));
+        if($send_via_ses)
+            return $mail_trail_message->send_via_ses();
+        else
+            return $mail_trail_message->send_via_phpmailer();
     }
     endif;
 ?>

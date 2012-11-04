@@ -47,7 +47,7 @@
             </tr>
             <tr>
                 <th>Subject</th>
-                <td><?php echo $post->post_title; ?></td>
+                <td><?php echo get_post_meta($post->ID, '_subject', true); ?></td>
             </tr>
         </thead>
     </table><?php
@@ -55,9 +55,9 @@
     $content_type = get_post_meta($post->ID, '_content_type', true);
     
     if($content_type == 'text/html') {
-        echo '<div class="body html">'.$post->post_content.'</div>';
+        echo '<div class="body html">'.get_post_meta($post->ID, '_body', true).'</div>';
     } else {
-        echo '<div class="body other">'.nl2br(htmlspecialchars($post->post_content)).'</div>';
+        echo '<div class="body other">'.nl2br(htmlspecialchars(get_post_meta($post->ID, '_body', true))).'</div>';
     }
     
 ?></div>

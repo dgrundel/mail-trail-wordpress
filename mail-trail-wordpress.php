@@ -70,11 +70,22 @@
         
         //register settings with WP
         function register_settings_fields() {
+            //General
+            add_settings_section('mail_options_general_section', 'General Options', array(&$this, 'general_section_description_html'), 'mail_options');
+            
+            register_setting('mail_options', 'mail_trail__send_mail_from_name', 'trim');
+            add_settings_field('mail_trail__send_mail_from_name', '<label for="mail_trail__send_mail_from_name">Send Mail From Name</label>' , array(&$this, 'send_mail_from_name_html') , 'mail_options', 'mail_options_general_section');
+            
+            register_setting('mail_options', 'mail_trail__send_mail_from_address', 'trim');
+            add_settings_field('mail_trail__send_mail_from_address', '<label for="mail_trail__send_mail_from_address">Send Mail From Address</label>' , array(&$this, 'send_mail_from_address_html') , 'mail_options', 'mail_options_general_section');
+            
+            //Mail Tracking
             add_settings_section('mail_options_tracking_section', 'Mail Tracking', array(&$this, 'tracking_section_description_html'), 'mail_options');
             
             register_setting('mail_options', 'mail_trail__enable_mail_save', 'intval');
             add_settings_field('mail_trail__enable_mail_save', '<label for="mail_trail__enable_mail_save">Save All Outgoing Mail</label>' , array(&$this, 'enable_mail_save_html') , 'mail_options', 'mail_options_tracking_section');
             
+            //Admin E-Mails
             add_settings_section('mail_options_admin_email_section', 'Admin E-Mails', array(&$this, 'admin_email_section_description_html'), 'mail_options');
             
             register_setting('mail_options', 'mail_trail__always_bcc_admin', 'intval');
@@ -82,9 +93,26 @@
             
             register_setting('mail_options', 'mail_trail__additional_admin_emails', 'trim');
             add_settings_field('mail_trail__additional_admin_emails', '<label for="mail_trail__additional_admin_emails">CC Admin E-Mails</label>' , array(&$this, 'additional_admin_emails_html') , 'mail_options', 'mail_options_admin_email_section');
+            
+            //Amazon SES
+            add_settings_section('mail_options_ses_section', 'Amazon SES', array(&$this, 'ses_section_description_html'), 'mail_options');
+            
+            register_setting('mail_options', 'mail_trail__enable_ses', 'intval');
+            add_settings_field('mail_trail__enable_ses', '<label for="mail_trail__enable_ses">Enable Amazon SES</label>' , array(&$this, 'enable_ses_html') , 'mail_options', 'mail_options_ses_section');
+            
+            register_setting('mail_options', 'mail_trail__ses_access_key', 'trim');
+            add_settings_field('mail_trail__ses_access_key', '<label for="mail_trail__ses_access_key">Access Key</label>' , array(&$this, 'ses_access_key_html') , 'mail_options', 'mail_options_ses_section');
+            
+            register_setting('mail_options', 'mail_trail__ses_secret_key', 'trim');
+            add_settings_field('mail_trail__ses_secret_key', '<label for="mail_trail__ses_secret_key">Secret Key</label>' , array(&$this, 'ses_secret_key_html') , 'mail_options', 'mail_options_ses_section');
         }
         
         //echo out the mail tracking section description
+        function general_section_description_html() {
+            return;
+            ?><p></p><?php
+        }
+        
         function tracking_section_description_html() {
             ?><p>Save all outgoing mail in the WordPress database. Viewable only by Administrators.</p><?php
         }
@@ -93,7 +121,20 @@
             ?><p>Control mail sent to the site admin.</p><?php
         }
         
-        //echo out the enable_mail_save field html
+        function ses_section_description_html() {
+            ?><p>Use Amazon's Simple E-Mail Service to send messages.</p><?php
+        }
+        
+        function send_mail_from_name_html() {
+            $field_value = get_option('mail_trail__send_mail_from_name', '');
+            ?><input type="text" id="mail_trail__send_mail_from_name" name="mail_trail__send_mail_from_name" value="<?php echo htmlspecialchars($field_value); ?>" class="regular-text ltr"><?php
+        }
+        
+        function send_mail_from_address_html() {
+            $field_value = get_option('mail_trail__send_mail_from_address', '');
+            ?><input type="text" id="mail_trail__send_mail_from_address" name="mail_trail__send_mail_from_address" value="<?php echo htmlspecialchars($field_value); ?>" class="regular-text ltr"><?php
+        }
+        
         function enable_mail_save_html() {
             $field_value = intval(get_option('mail_trail__enable_mail_save', 1));
             ?><input type="hidden" name="mail_trail__enable_mail_save" value="0">
@@ -109,8 +150,24 @@
         
         function additional_admin_emails_html() {
             $field_value = get_option('mail_trail__additional_admin_emails', '');
-            ?><input type="text" id="mail_trail__additional_admin_emails" name="mail_trail__additional_admin_emails" value="<?php echo $field_value; ?>" class="regular-text ltr">
+            ?><input type="text" id="mail_trail__additional_admin_emails" name="mail_trail__additional_admin_emails" value="<?php echo htmlspecialchars($field_value); ?>" class="regular-text ltr">
             <p class="description">Also CC these people on all messages sent to the site admin. Separate e-mail addresses with a comma.</p><?php
+        }
+        
+        function enable_ses_html() {
+            $field_value = intval(get_option('mail_trail__enable_ses', 0));
+            ?><input type="hidden" name="mail_trail__enable_ses" value="0">
+            <input type="checkbox" id="mail_trail__enable_ses" name="mail_trail__enable_ses" value="1"<?php if($field_value) echo ' checked'; ?>><?php
+        }
+        
+        function ses_access_key_html() {
+            $field_value = get_option('mail_trail__ses_access_key', '');
+            ?><input type="text" id="mail_trail__ses_access_key" name="mail_trail__ses_access_key" value="<?php echo htmlspecialchars($field_value); ?>" class="regular-text code"><?php
+        }
+        
+        function ses_secret_key_html() {
+            $field_value = get_option('mail_trail__ses_secret_key', '');
+            ?><input type="text" id="mail_trail__ses_secret_key" name="mail_trail__ses_secret_key" value="<?php echo htmlspecialchars($field_value); ?>" class="regular-text code"><?php
         }
         
         //hide the Add New menu item
@@ -160,4 +217,5 @@
     $webpres_mail_trail = new WebPres_Mail_Trail();
     
     require_once(plugin_dir_path(__FILE__).'mail-trail-wp_mail.php');
+    require_once(plugin_dir_path(__FILE__).'mail-trail-message.php');
 ?>
