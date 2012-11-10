@@ -156,7 +156,7 @@
         
         function purge_old_mail_html() {
             $field_value = intval(get_option('mail_trail__purge_old_mail', 0));
-            ?><input type="number" id="mail_trail__purge_old_mail" name="mail_trail__purge_old_mail" step="1" min="1" value="<?php echo $field_value; ?>" class="small-text">
+            ?><input type="number" id="mail_trail__purge_old_mail" name="mail_trail__purge_old_mail" step="1" min="0" value="<?php echo $field_value; ?>" class="small-text">
             <p class="description">Automatically remove saved messages after a certain number of days. Enter 0 (zero) to keep mail indefinitely.</p><?php
         }
         
